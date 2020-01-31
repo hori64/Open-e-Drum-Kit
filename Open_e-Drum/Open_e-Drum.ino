@@ -67,6 +67,7 @@ byte pedalOldEighthOfAvgValue = 0;
 //unsigned long pedalVelocity = 0;
 
 HelloDrumButton button(6, 7, 8, 9, 10); //(EDIT,UP,DOWN,NEXT,BACK)
+bool MyEditState = false;
 
 void setup()
 {
@@ -85,11 +86,6 @@ void setup()
     u8x8.setCursor(0, 6);
     u8x8.print(F("Hello Drum!"));
   
-//    u8x8.begin();
-//    u8x8.clear();
-//    u8x8.setFont(u8x8_font_amstrad_cpc_extended_r);
-//    u8x8.draw1x2String(4, 4, "Hello Drum!");
-      
     //Give each pad a name to be displayed on the LCD.
     //It is necessary to make the order in exactly the same order as you named the pad first.
     kick.settingName("KICK");
@@ -121,17 +117,6 @@ void setup()
 void loop()
 {
 
-//    bool buttonPush = button.GetPushState();
-//    bool editStart = button.GetEditState();
-//    bool editDone = button.GetEditdoneState();
-//    bool display = button.GetDisplayState();
-//
-//    char *padName = button.GetPadName();
-//    char *item = button.GetSettingItem();
-//    int settingValue = button.GetSettingValue();
-//    int velocity = button.GetVelocity();
-//    char *hitPad = button.GetHitPad();
-
     button.readButtonState();
 
     kick.settingEnable();
@@ -145,6 +130,21 @@ void loop()
     cym_2.settingEnable();
     ride.settingEnable();
 
+  if (button.GetEditState()){
+    MyEditState = true;
+    u8x8.setCursor(0, 4);
+    u8x8.setInverseFont(1);
+    u8x8.print(button.GetSettingValue());
+    u8x8.setInverseFont(0);
+  }
+  
+  if (button.GetEditdoneState()){
+    MyEditState = false ;
+    u8x8.setCursor(0, 4);
+    u8x8.setInverseFont(0);
+    u8x8.print(button.GetSettingValue());
+  }
+    
   if (button.GetPushState())
   {
     u8x8.clear();
@@ -152,13 +152,13 @@ void loop()
     u8x8.setCursor(0, 2);
     u8x8.print(button.GetSettingItem());
     u8x8.setCursor(0, 4);
-    if ( button.GetEditCheck()) u8x8.setInverseFont(1);
+    if ( MyEditState) u8x8.setInverseFont(1);
     u8x8.print(button.GetSettingValue());
     u8x8.setInverseFont(0);
     do button.readButtonState(); while (button.GetPushState());
   }
 
-  //show hitted pad name and velocity to LCD
+  //show hitted pad name and velocity
   if ( button.GetDisplayState() && displayDelay < millis())
   {
     u8x8.setCursor(0, 6);
@@ -167,7 +167,7 @@ void loop()
     u8x8.print(button.GetHitPad());
     u8x8.setCursor(10, 6);
     u8x8.print(button.GetVelocity());
-    displayDelay = millis()+50; //If you want to check the mask time, comment out this line. (But hearing it is better to set this up)
+    displayDelay = millis()+50; //If you want to check the pads mask time, comment out this line. (But hearing it is better to set this up)
   }
 
   //Sensing each pad.
@@ -176,7 +176,7 @@ void loop()
 
     kick.singlePiezoMUX();   
     snare.singlePiezoMUX();
-    //snare.dualPiezoMUX();    
+//    snare.dualPiezoMUX();    
     tom_1.singlePiezoMUX();  
     tom_2.singlePiezoMUX();  
     tom_3.singlePiezoMUX();  
@@ -259,6 +259,7 @@ void loop()
       MIDI.sendControlChange(4, pedalEighthOfAvgValue * 18, 10);
       
 //      pedalVelocity = map(millis() - pedalTimeOfChange, 0, 200, 127, 1);
+
       if (pedalOldEighthOfAvgValue < 6 && pedalEighthOfAvgValue == 6) // foot close, hihat.note
       {
         MIDI.sendNoteOn(hihat.note, 127, 10); 
