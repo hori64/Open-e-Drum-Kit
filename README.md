@@ -1,3 +1,4 @@
 # Open-e-Drum-Kit
 My Hello Drum based drum kit.
-(Under construction.)
+Pictures: https://photos.app.goo.gl/zvTpE33wYrmLLrem9
+(Under construction...)
