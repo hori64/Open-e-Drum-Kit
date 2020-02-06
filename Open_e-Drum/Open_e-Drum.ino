@@ -41,7 +41,7 @@ MIDI_CREATE_DEFAULT_INSTANCE();
 
 #include <U8x8lib.h>
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ U8X8_PIN_NONE); 
-unsigned long displayDelay;
+//unsigned long displayDelay;
 
 HelloDrumMUX_4051 mux1(2,3,4,A7); 
 HelloDrumMUX_4051 mux2(5,11,12,A6); 
@@ -55,7 +55,7 @@ HelloDrum tom_4(6,7);
 HelloDrum hihat(8);
 HelloDrum cym_1(9);
 HelloDrum cym_2(10);
-HelloDrum ride(12,13);
+HelloDrum ride(11,12); 
 
 #define HIHAT_PEDAL A0
 #define PEDAL_MIN  29
@@ -77,13 +77,13 @@ void setup()
     MIDI.begin();
     Serial.begin(38400);
 
-    displayDelay = millis();
+//    displayDelay = millis();
 //    pedalTimeOfChange = millis();
 
     u8x8.begin();
-    u8x8.setFont(u8x8_font_7x14_1x2_r);
+    u8x8.setFont(u8x8_font_7x14B_1x2_r);
     u8x8.clear();
-    u8x8.setCursor(0, 6);
+    u8x8.setCursor(1, 2);
     u8x8.print(F("Hello Drum!"));
   
     //Give each pad a name to be displayed on the LCD.
@@ -111,7 +111,6 @@ void setup()
     cym_1.loadMemory();
     cym_2.loadMemory();
     ride.loadMemory();
-
 }
 
 void loop()
@@ -130,45 +129,51 @@ void loop()
     cym_2.settingEnable();
     ride.settingEnable();
 
-  if (button.GetEditState()){
-    MyEditState = true;
-    u8x8.setCursor(0, 4);
-    u8x8.setInverseFont(1);
-    u8x8.print(button.GetSettingValue());
-    u8x8.setInverseFont(0);
-  }
-  
-  if (button.GetEditdoneState()){
-    MyEditState = false ;
-    u8x8.setCursor(0, 4);
-    u8x8.setInverseFont(0);
-    u8x8.print(button.GetSettingValue());
-  }
-    
   if (button.GetPushState())
   {
     u8x8.clear();
+    u8x8.setFont(u8x8_font_7x14B_1x2_r);
     u8x8.print(button.GetPadName());
     u8x8.setCursor(0, 2);
     u8x8.print(button.GetSettingItem());
-    u8x8.setCursor(0, 4);
+    u8x8.setCursor(0, 5);
+    u8x8.setFont(u8x8_font_profont29_2x3_r);
     if ( MyEditState) u8x8.setInverseFont(1);
     u8x8.print(button.GetSettingValue());
     u8x8.setInverseFont(0);
     do button.readButtonState(); while (button.GetPushState());
   }
-
-  //show hitted pad name and velocity
-  if ( button.GetDisplayState() && displayDelay < millis())
-  {
-    u8x8.setCursor(0, 6);
-    u8x8.print(F("                "));
-    u8x8.setCursor(0, 6);
-    u8x8.print(button.GetHitPad());
-    u8x8.setCursor(10, 6);
-    u8x8.print(button.GetVelocity());
-    displayDelay = millis()+50; //If you want to check the pads mask time, comment out this line. (But hearing it is better to set this up)
+  if (button.GetEditState()){
+    MyEditState = true;
+    u8x8.setFont(u8x8_font_7x14B_1x2_r);
+    u8x8.setCursor(0, 0);
+    u8x8.print(button.GetPadName());
+    u8x8.setCursor(0, 2);
+    u8x8.print(button.GetSettingItem());
+    u8x8.setCursor(0, 5);
+    u8x8.setFont(u8x8_font_profont29_2x3_r);
+    u8x8.setInverseFont(1);
+    u8x8.print(button.GetSettingValue());
+    u8x8.setInverseFont(0);
   }
+  if (button.GetEditdoneState()){
+    MyEditState = false ;
+    u8x8.setCursor(0, 5);
+    u8x8.setInverseFont(0);
+    u8x8.print(button.GetSettingValue());
+  }
+  
+//  //show hitted pad name and velocity (This slows down the program. Its use is not recommended.)
+//  if ( button.GetDisplayState() && displayDelay < millis())
+//  {
+//    u8x8.setCursor(0, 6);
+//    u8x8.print(F("                "));
+//    u8x8.setCursor(0, 6);
+//    u8x8.print(button.GetHitPad());
+//    u8x8.setCursor(10, 6);
+//    u8x8.print(button.GetVelocity());
+//    displayDelay = millis()+50;
+//  }
 
   //Sensing each pad.
     mux1.scan();
@@ -250,16 +255,14 @@ void loop()
     }
 
     pedalAvgValue = (pedalAvgValue * 2 + map(analogRead(HIHAT_PEDAL), PEDAL_MIN, PEDAL_MAX, 0, 127)) / 3;
+    if (pedalAvgValue < 0) pedalAvgValue = 0;
+    if (pedalAvgValue > 127) pedalAvgValue = 127;
     pedalEighthOfAvgValue = map(pedalAvgValue, 0, 127, 7, 0); // reverse here
-    
  //   if (pedalEighthOfAvgValue == 1 || pedalEighthOfAvgValue == 3) pedalTimeOfChange = millis();
-    
     if (pedalEighthOfAvgValue != pedalOldEighthOfAvgValue)
     {
       MIDI.sendControlChange(4, pedalEighthOfAvgValue * 18, 10);
-      
 //      pedalVelocity = map(millis() - pedalTimeOfChange, 0, 200, 127, 1);
-
       if (pedalOldEighthOfAvgValue < 6 && pedalEighthOfAvgValue == 6) // foot close, hihat.note
       {
         MIDI.sendNoteOn(hihat.note, 127, 10); 
@@ -270,7 +273,6 @@ void loop()
         MIDI.sendNoteOn(hihat.noteRim, 127, 10); 
         MIDI.sendNoteOff(hihat.noteRim, 0, 10);
       }
-      
       pedalOldEighthOfAvgValue = pedalEighthOfAvgValue;  
     }
 
