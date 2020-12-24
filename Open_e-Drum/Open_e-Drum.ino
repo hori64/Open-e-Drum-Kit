@@ -28,6 +28,7 @@
   FSR HIHAT Pedal
   3.3V --> 220kOhm --> A0 <-- FSR <-- GND
   
+   !!! This works with version 0.7.3 of the Hello Drum library !!!
    
 */
 
